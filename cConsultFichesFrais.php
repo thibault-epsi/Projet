@@ -25,14 +25,14 @@
   if ($etape == "validerConsult") { // l'utilisateur valide ses nouvelles données
                 
       // vérification de l'existence de la fiche de frais pour le mois demandé
-      $existeFicheFrais = existeFicheFrais($idConnexion, $moisSaisi, obtenirIdUserConnecte());
+      $existeFicheFrais = existeFicheFrais($dbh, $moisSaisi, obtenirIdUserConnecte());
       // si elle n'existe pas, on la crée avec les élets frais forfaitisés à 0
       if ( !$existeFicheFrais ) {
           ajouterErreur($tabErreurs, "Le mois demandé est invalide");
       }
       else {
           // récupération des données sur la fiche de frais demandée
-          $tabFicheFrais = obtenirDetailFicheFrais($idConnexion, $moisSaisi, obtenirIdUserConnecte());
+          $tabFicheFrais = obtenirDetailFicheFrais($dbh, $moisSaisi, obtenirIdUserConnecte());
       }
   }                                  
 ?>
@@ -49,8 +49,8 @@
             <?php
                 // on propose tous les mois pour lesquels le visiteur a une fiche de frais
                 $req = obtenirReqMoisFicheFrais(obtenirIdUserConnecte());
-                $idJeuMois = mysql_query($req, $idConnexion);
-                $lgMois = mysql_fetch_assoc($idJeuMois);
+                $idJeuMois = $dbh->query($req);
+                $lgMois = $idJeuMois->fetch(PDO::FETCH_ASSOC);
                 while ( is_array($lgMois) ) {
                     $mois = $lgMois["mois"];
                     $noMois = intval(substr($mois, 4, 2));
@@ -58,9 +58,9 @@
             ?>    
             <option value="<?php echo $mois; ?>"<?php if ($moisSaisi == $mois) { ?> selected="selected"<?php } ?>><?php echo obtenirLibelleMois($noMois) . " " . $annee; ?></option>
             <?php
-                    $lgMois = mysql_fetch_assoc($idJeuMois);        
+                    $lgMois = $idJeuMois->fetch(PDO::FETCH_ASSOC);
                 }
-                mysql_free_result($idJeuMois);
+                $idJeuMois->closeCursor();
             ?>
         </select>
       </p>
@@ -95,9 +95,9 @@
             // demande de la requête pour obtenir la liste des éléments 
             // forfaitisés du visiteur connecté pour le mois demandé
             $req = obtenirReqEltsForfaitFicheFrais($moisSaisi, obtenirIdUserConnecte());
-            $idJeuEltsFraisForfait = mysql_query($req, $idConnexion);
-            echo mysql_error($idConnexion);
-            $lgEltForfait = mysql_fetch_assoc($idJeuEltsFraisForfait);
+            $idJeuEltsFraisForfait = $dbh->query($req);
+            echo $dbh->errorInfo();
+            $lgEltForfait = $idJeuEltsFraisForfait->fetch(PDO::FETCH_ASSOC);
             // parcours des frais forfaitisés du visiteur connecté
             // le stockage intermédiaire dans un tableau est nécessaire
             // car chacune des lignes du jeu d'enregistrements doit être doit être
@@ -105,9 +105,9 @@
             $tabEltsFraisForfait = array();
             while ( is_array($lgEltForfait) ) {
                 $tabEltsFraisForfait[$lgEltForfait["libelle"]] = $lgEltForfait["quantite"];
-                $lgEltForfait = mysql_fetch_assoc($idJeuEltsFraisForfait);
+                $lgEltForfait = $idJeuEltsFraisForfait->fetch(PDO::FETCH_ASSOC);
             }
-            mysql_free_result($idJeuEltsFraisForfait);
+            $idJeuEltsFraisForfait->closeCursor();
             ?>
   	<table class="listeLegere">
   	   <caption>Quantités des éléments forfaitisés</caption>
@@ -146,8 +146,8 @@
             // demande de la requête pour obtenir la liste des éléments hors
             // forfait du visiteur connecté pour le mois demandé
             $req = obtenirReqEltsHorsForfaitFicheFrais($moisSaisi, obtenirIdUserConnecte());
-            $idJeuEltsHorsForfait = mysql_query($req, $idConnexion);
-            $lgEltHorsForfait = mysql_fetch_assoc($idJeuEltsHorsForfait);
+            $idJeuEltsHorsForfait = $dbh->query($req);
+            $lgEltHorsForfait = $idJeuEltsHorsForfait->fetch(PDO::FETCH_ASSOC);
             
             // parcours des éléments hors forfait 
             while ( is_array($lgEltHorsForfait) ) {
@@ -158,9 +158,9 @@
                    <td><?php echo $lgEltHorsForfait["montant"] ; ?></td>
                 </tr>
             <?php
-                $lgEltHorsForfait = mysql_fetch_assoc($idJeuEltsHorsForfait);
+                $lgEltHorsForfait = $idJeuEltsHorsForfait->fetch(PDO::FETCH_ASSOC);
             }
-            mysql_free_result($idJeuEltsHorsForfait);
+            $idJeuEltsHorsForfait->closeCursor();
   ?>
     </table>
   </div>

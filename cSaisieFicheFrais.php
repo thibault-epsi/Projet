@@ -16,10 +16,10 @@
   // affectation du mois courant pour la saisie des fiches de frais
   $mois = sprintf("%04d%02d", date("Y"), date("m"));
   // vérification de l'existence de la fiche de frais pour ce mois courant
-  $existeFicheFrais = existeFicheFrais($idConnexion, $mois, obtenirIdUserConnecte());
+  $existeFicheFrais = existeFicheFrais($dbh, $mois, obtenirIdUserConnecte());
   // si elle n'existe pas, on la crée avec les élets frais forfaitisés à 0
   if ( !$existeFicheFrais ) {
-      ajouterFicheFrais($idConnexion, $mois, obtenirIdUserConnecte());
+      ajouterFicheFrais($dbh, $mois, obtenirIdUserConnecte());
   }
   // acquisition des données entrées
   // acquisition de l'étape du traitement 
@@ -41,17 +41,17 @@
           ajouterErreur($tabErreurs, "Chaque quantité doit être renseignée et numérique positive.");
       }
       else { // mise à jour des quantités des éléments forfaitisés
-          modifierEltsForfait($idConnexion, $mois, obtenirIdUserConnecte(),$tabQteEltsForfait);
+          modifierEltsForfait($dbh, $mois, obtenirIdUserConnecte(),$tabQteEltsForfait);
       }
   }                                                       
   elseif ($etape == "validerSuppressionLigneHF") {
-      supprimerLigneHF($idConnexion, $idLigneHF);
+      supprimerLigneHF($dbh, $idLigneHF);
   }
   elseif ($etape == "validerAjoutLigneHF") {
       verifierLigneFraisHF($dateHF, $libelleHF, $montantHF, $tabErreurs);
       if ( nbErreurs($tabErreurs) == 0 ) {
           // la nouvelle ligne ligne doit être ajoutée dans la base de données
-          ajouterLigneHF($idConnexion, $mois, obtenirIdUserConnecte(), $dateHF, $libelleHF, $montantHF);
+          ajouterLigneHF($dbh, $mois, obtenirIdUserConnecte(), $dateHF, $libelleHF, $montantHF);
       }
   }
   else { // on ne fait rien, étape non prévue 
@@ -83,9 +83,9 @@
             // demande de la requête pour obtenir la liste des éléments 
             // forfaitisés du visiteur connecté pour le mois demandé
             $req = obtenirReqEltsForfaitFicheFrais($mois, obtenirIdUserConnecte());
-            $idJeuEltsFraisForfait = mysql_query($req, $idConnexion);
-            echo mysql_error($idConnexion);
-            $lgEltForfait = mysql_fetch_assoc($idJeuEltsFraisForfait);
+            $idJeuEltsFraisForfait = $dbh->query($req);
+            $dbh->errorInfo();
+            $lgEltForfait = $idJeuEltsFraisForfait->fetch(PDO::FETCH_ASSOC);
             while ( is_array($lgEltForfait) ) {
                 $idFraisForfait = $lgEltForfait["idFraisForfait"];
                 $libelle = $lgEltForfait["libelle"];
@@ -100,9 +100,9 @@
                     value="<?php echo $quantite; ?>" />
             </p>
             <?php        
-                $lgEltForfait = mysql_fetch_assoc($idJeuEltsFraisForfait);   
+                $lgEltForfait = $idJeuEltsFraisForfait->fetch(PDO::FETCH_ASSOC);
             }
-            mysql_free_result($idJeuEltsFraisForfait);
+            $idJeuEltsFraisForfait->closeCursor();
             ?>
           </fieldset>
       </div>
@@ -128,8 +128,8 @@
           // demande de la requête pour obtenir la liste des éléments hors
           // forfait du visiteur connecté pour le mois demandé
           $req = obtenirReqEltsHorsForfaitFicheFrais($mois, obtenirIdUserConnecte());
-          $idJeuEltsHorsForfait = mysql_query($req, $idConnexion);
-          $lgEltHorsForfait = mysql_fetch_assoc($idJeuEltsHorsForfait);
+          $idJeuEltsHorsForfait = $dbh->query($req);
+          $lgEltHorsForfait = $idJeuEltsHorsForfait->fetch(PDO::FETCH_ASSOC);
           
           // parcours des frais hors forfait du visiteur connecté
           while ( is_array($lgEltHorsForfait) ) {
@@ -143,9 +143,9 @@
                        title="Supprimer la ligne de frais hors forfait">Supprimer</a></td>
               </tr>
           <?php
-              $lgEltHorsForfait = mysql_fetch_assoc($idJeuEltsHorsForfait);
+              $lgEltHorsForfait = $idJeuEltsHorsForfait->fetch(PDO::FETCH_ASSOC);
           }
-          mysql_free_result($idJeuEltsHorsForfait);
+          $idJeuEltsHorsForfait->closeCursor();
 ?>
     </table>
       <form action="" method="post">
